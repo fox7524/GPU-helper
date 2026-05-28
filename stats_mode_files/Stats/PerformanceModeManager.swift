@@ -65,6 +65,36 @@ internal enum PerformanceModeManager {
         guard let data = Store.shared.data(key: snapshotKeyPrefix + mode.rawValue) else { return nil }
         return try? JSONDecoder().decode(ModeSnapshot.self, from: data)
     }
+
+    static func clearSnapshot(for mode: PerformanceMode) {
+        Store.shared.remove(snapshotKeyPrefix + mode.rawValue)
+    }
+
+    // MARK: - Import/Export (manual)
+
+    internal struct ExportBundle: Codable {
+        var mode: String
+        var snapshot: ModeSnapshot
+    }
+
+    static func exportAll() -> Data? {
+        var bundles: [ExportBundle] = []
+        for mode in PerformanceMode.allCases {
+            if let snap = loadSnapshot(for: mode) {
+                bundles.append(ExportBundle(mode: mode.rawValue, snapshot: snap))
+            }
+        }
+        return try? JSONEncoder().encode(bundles)
+    }
+
+    static func importAll(from data: Data) {
+        guard let bundles = try? JSONDecoder().decode([ExportBundle].self, from: data) else { return }
+        for bundle in bundles {
+            guard let mode = PerformanceMode(rawValue: bundle.mode),
+                  let encoded = try? JSONEncoder().encode(bundle.snapshot) else { continue }
+            Store.shared.set(key: snapshotKeyPrefix + mode.rawValue, value: encoded)
+        }
+    }
     
     /// Apply the saved snapshot for the given mode (if it exists).
     /// This only changes Stats internal layout: module enabled states + widgets.
@@ -92,6 +122,12 @@ internal enum PerformanceModeManager {
         
         // 3) Apply widget active lists.
         for m in modules where m.available {
+            // If the snapshot says this module is disabled, do not toggle widgets here.
+            // Module.disable() already removes menu bar items, and toggling widgets could
+            // implicitly re-enable modules via notifications.
+            if snapshot.moduleStates[m.config.name] == false {
+                continue
+            }
             guard let listRaw = snapshot.widgetLists[m.config.name] else { continue }
             let desired: [widget_t] = listRaw
                 .split(separator: ",")
@@ -118,4 +154,3 @@ internal enum PerformanceModeManager {
         }
     }
 }
-

@@ -43,6 +43,7 @@ Add:
 - optional bool `performance_mode_menubar`
 - selector UI + “Save current layout to this mode”
 - “Show mode in menu bar” switch
+- optional “Clear”, “Export”, “Import” buttons (all manual)
 - handlers to set mode + save snapshot
 
 Key handlers:
@@ -63,6 +64,39 @@ Key handlers:
     NotificationCenter.default.post(name: .performanceModeMenuBarVisibilityChanged, object: nil)
 }
 ```
+
+Optional import/export:
+- export writes a JSON file containing any saved snapshots
+- import reads that file and stores snapshots back into UserDefaults
+
+### E) Optional: preserve menu bar icon order for the mode indicator
+
+Stats/Kit already has helper functions that store/restore a status item position. In upstream they are `internal`; to call them from the Stats target, make them `public`:
+
+`Kit/helpers.swift`:
+```swift
+public func saveNSStatusItemPosition(id: String) { ... }
+public func restoreNSStatusItemPosition(id: String) { ... }
+```
+
+Then in the Stats target, before creating the mode status item:
+```swift
+restoreNSStatusItemPosition(id: "StatsPerformanceMode")
+```
+and before removing it:
+```swift
+saveNSStatusItemPosition(id: "StatsPerformanceMode")
+```
+
+### F) Recommended: fix `nettop` orphan processes (Network module)
+
+If you use the Network module (process-based reader), `nettop` can hang and become an orphan process, burning CPU.
+
+Fix approach:
+- wrap `nettop` invocation with a timeout watchdog
+- call `task.waitUntilExit()` after reading output
+
+Reference: https://github.com/exelban/stats/issues/3224
 
 ### C) `Stats/AppDelegate.swift`
 
