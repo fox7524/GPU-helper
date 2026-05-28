@@ -52,7 +52,7 @@ Adds a “Modes” section:
 ## Notes / limitations (MVP)
 - If a mode has no saved snapshot yet, switching to it does nothing.
 - This MVP focuses on layout only; it does **not** change sampling/update intervals per mode (we can add that later if you want).
-- It does not currently add a dedicated menu-bar “mode switch” button; the switch is in Settings.
+- It includes an optional **menu bar mode indicator** (disabled by default). Enable it in **Settings → Modes → “Show mode in menu bar”**.
 
 ## How to build on your Mac (Xcode)
 1) Fork and clone:
@@ -64,5 +64,6 @@ Adds a “Modes” section:
    - Make sure it is included in the **Stats** target.
 4) Build + Run.
 
-If you want, next step is making the mode switch available directly from the menu bar (still manual), but you told me “UI-only for now”, so I kept it in Settings.
-
+Menu bar indicator behavior:
+- Shows `N`, `LLM`, or `G` in the menu bar
+- Clicking it opens a menu to switch modes (manual)

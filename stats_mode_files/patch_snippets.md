@@ -9,6 +9,7 @@ These are the minimal edits needed to wire modes into Stats.
 public extension Notification.Name {
     // ...
     static let performanceModeChanged = Notification.Name("performanceModeChanged")
+    static let performanceModeMenuBarVisibilityChanged = Notification.Name("performanceModeMenuBarVisibilityChanged")
 }
 ```
 
@@ -39,7 +40,9 @@ public let PerformanceModes: [KeyValue_t] = [
 
 Add:
 - stored value `performance_mode`
+- optional bool `performance_mode_menubar`
 - selector UI + “Save current layout to this mode”
+- “Show mode in menu bar” switch
 - handlers to set mode + save snapshot
 
 Key handlers:
@@ -53,6 +56,11 @@ Key handlers:
 @objc private func saveModeLayout() {
     guard let mode = PerformanceMode(rawValue: Store.shared.string(key: "performance_mode", defaultValue: "normal")) else { return }
     PerformanceModeManager.saveSnapshot(for: mode, modules: modules)
+}
+
+@objc private func toggleModeMenuBar(_ sender: NSButton) {
+    Store.shared.set(key: "performance_mode_menubar", value: sender.state == .on)
+    NotificationCenter.default.post(name: .performanceModeMenuBarVisibilityChanged, object: nil)
 }
 ```
 
@@ -76,10 +84,15 @@ NotificationCenter.default.addObserver(self, selector: #selector(handlePerforman
 ```swift
 @objc private func handlePerformanceModeChanged(_ notification: Notification) {
     PerformanceModeManager.applySnapshot(for: PerformanceModeManager.currentMode, modules: modules)
+    self.updateModeStatusItem()
 }
 ```
+
+4) Add menu bar indicator implementation (UI-only):
+- add property `modeStatusItem: NSStatusItem?`
+- create/remove it based on `performance_mode_menubar` key
+- show a small menu to pick modes
 
 ### D) Add file to Xcode project
 
 Add `Stats/PerformanceModeManager.swift` to the **Stats** target in Xcode (drag & drop into the project navigator and ensure the target membership checkbox is on).
-
